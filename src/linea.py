@@ -1,31 +1,29 @@
-from typing import List
+﻿from typing import List
+
 from estacion import Estacion
 
+
 class Linea:
-    """
-    Gestiona una línea específica (ej. L1). 
-    Almacena las estaciones en una LISTA porque el orden es fundamental 
-    para el transporte.
-    """
+    """Representa una linea de metro como lista ordenada de estaciones."""
+
     def __init__(self, nombre: str, paradas: List[Estacion]):
+        """Inicializa nombre de linea y su secuencia de paradas."""
         self.nombre: str = nombre
-        self.paradas: List[Estacion] = paradas 
+        self.paradas: List[Estacion] = paradas
 
     def es_circular(self) -> bool:
-        """
-        Una línea es circular si el trayecto se cierra sobre sí mismo.
-        Técnicamente: la primera y la última estación son iguales[cite: 1].
+        """Indica si la linea es circular.
+
+        Como lo hace:
+        - Una linea es circular si su primera y ultima parada coinciden.
+        - Si hay menos de 2 paradas, no puede formar ciclo.
         """
         if len(self.paradas) < 2:
             return False
         return self.paradas[0] == self.paradas[-1]
 
     def __eq__(self, other) -> bool:
-        """
-        Dos líneas son iguales si se llaman igual y tienen 
-        exactamente las mismas paradas en el mismo orden[cite: 1].
-        """
+        """Compara dos lineas por nombre y orden exacto de paradas."""
         if not isinstance(other, Linea):
             return False
-        return (self.nombre == other.nombre and 
-                self.paradas == other.paradas)
+        return self.nombre == other.nombre and self.paradas == other.paradas

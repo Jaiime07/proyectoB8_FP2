@@ -1,74 +1,51 @@
-from typing import Dict, List
+﻿from typing import Dict
+
 from linea import Linea
-from estacion import Estacion
+
 
 class RedLineas:
+    """Vista del dominio centrada en lineas de metro.
+
+    Guarda cada linea con sus paradas ordenadas, lo que permite modelar
+    directamente el recorrido real de la red.
     """
-    Contenedor global que organiza el metro por líneas.
-    Estructura: { "Linea 1": ObjetoLinea1, ... }[cite: 1]
-    """
+
     def __init__(self, mapa_lineas: Dict[str, Linea]):
+        """Inicializa la red con un diccionario {nombre_linea: Linea}."""
         self.mapa: Dict[str, Linea] = mapa_lineas
 
     def to_estaciones(self):
-        """
-        TRANSFORMACIÓN: Convierte esta visión en una 'RedEstaciones'.
-        Recorre cada línea y anota en qué posición aparece cada estación[cite: 1].
-        """
-        # Import local para evitar 'Circular Import Error'
-        from red_estaciones import RedEstaciones 
-        
-        mapa_est = {}
-        for nombre_linea, linea_obj in self.mapa.items():
-            for pos, est in enumerate(linea_obj.paradas):
-                if est.nombre not in mapa_est:
-                    mapa_est[est.nombre] = {}
-                
-                # Guardamos la posición para poder reconstruir el orden después
-                if nombre_linea not in mapa_est[est.nombre]:
-                    mapa_est[est.nombre][nombre_linea] = []
-                mapa_est[est.nombre][nombre_linea].append(pos)
-                
-        return RedEstaciones(mapa_est)
+        """Convierte la vista por lineas en una vista por estaciones.
 
-    def eliminar_linea(self, nombre_linea: str) -> 'RedLineas':
+        Como lo hace:
+        - Recorre todas las lineas y sus paradas con su indice.
+        - Para cada estacion, registra en que linea aparece y en que posiciones.
         """
-        Crea una copia de la red SIN una línea específica. 
-        Útil para el análisis de criticidad y conexidad[cite: 1].
+        from red_estaciones import RedEstaciones  # Import local para evitar dependencia circular.
+
+        mapa_estaciones = {}
+        for nombre_linea, linea_obj in self.mapa.items():
+            for posicion, estacion in enumerate(linea_obj.paradas):
+                if estacion.nombre not in mapa_estaciones:
+                    mapa_estaciones[estacion.nombre] = {}
+                if nombre_linea not in mapa_estaciones[estacion.nombre]:
+                    mapa_estaciones[estacion.nombre][nombre_linea] = []
+                mapa_estaciones[estacion.nombre][nombre_linea].append(posicion)
+
+        return RedEstaciones(mapa_estaciones)
+
+    def eliminar_linea(self, nombre_linea: str) -> "RedLineas":
+        """Devuelve una copia de la red sin la linea indicada.
+
+        Como lo hace:
+        - Filtra el diccionario original excluyendo la clave solicitada.
+        - Construye una nueva instancia RedLineas con el resultado.
         """
-        nuevo_mapa = {k: v for k, v in self.mapa.items() if k != nombre_linea}
+        nuevo_mapa = {nombre: linea for nombre, linea in self.mapa.items() if nombre != nombre_linea}
         return RedLineas(nuevo_mapa)
 
     def __eq__(self, other) -> bool:
-        """Compara si dos redes tienen el mismo contenido[cite: 1]."""
+        """Compara dos redes por igualdad estructural de su mapa."""
         if not isinstance(other, RedLineas):
             return False
         return self.mapa == other.mapa
-    
-    def analizar_criticidad(self):
-        """
-        Simula la eliminación de cada línea y calcula el impacto en la red.
-        Calcula cuántas estaciones quedarían aisladas del componente principal.
-        """
-        print(f"\n{'LÍNEA':<15} | {'¿CONEXO?':<10} | {'EST. AISLADAS':<15} | {'CRITICIDAD (%)'}")
-        print("-" * 65)
-        
-        total_estaciones_global = len(self.to_estaciones().mapa)
-        
-        for nombre_linea in self.mapa.keys():
-            # 1. Creamos una copia de la red sin esta línea
-            red_reducida = self.eliminar_linea(nombre_linea)
-            
-            # 2. Generamos la visión de estaciones de la red resultante
-            vision_est_reducida = red_reducida.to_estaciones()
-            
-            # 3. Calculamos la conexidad
-            # Nota: Necesitamos que es_conexo nos devuelva cuántas estaciones alcanzó
-            conexo, estaciones_alcanzadas = vision_est_reducida.obtener_estadisticas_conexidad(red_reducida)
-            
-            # 4. Cálculo de estaciones aisladas
-            # Las estaciones que no están en el componente principal
-            aisladas = total_estaciones_global - estaciones_alcanzadas
-            proporcion = (aisladas / total_estaciones_global) * 100
-            
-            print(f"{nombre_linea:<15} | {str(conexo):<10} | {aisladas:<15} | {proporcion:.2f}%")
